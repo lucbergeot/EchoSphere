@@ -140,6 +140,26 @@ The three systems—Associative, Spatial, and Scratch Memory—are interlinked, 
 
 Together, these memory modules create dynamic and consistent NPC behaviors, contributing to meaningful social interactions in Smallville.
 
+## 3.5 Path Testing and Spatial Navigation
+
+The `temp_storage` folder includes several key files that help define how NPCs navigate their environment and interact with objects in the world.
+
+### Pathfinding Tests
+Pathfinding Tests (`path_tester_env.json` & `path_tester_out.json`) are used to check whether NPCs can navigate efficiently through different areas of the Ville. The system tests various coordinates in the simulation environment to ensure that NPCs can move from one point to another without issue.
+
+- In `path_tester_env.json`, the coordinates within the Ville are referenced to test specific locations for NPC movement.
+
+### Room and Object Mapping
+`path_tester_out.json` provides a detailed list of rooms and their corresponding objects, helping NPCs understand their spatial environment. For example:
+
+- **Hobbs Cafe** contains objects like "refrigerator", "customer seating", and a "piano."
+- **Adam Smith's house** has a "bed", "desk", and "closet."
+
+This detailed room-to-object mapping is used to help NPCs remember where specific objects are located and allows them to interact with their environment in a meaningful way (e.g., sitting at a table, using a sink, or cooking in the kitchen).
+
+### Current Simulation State
+`curr_sim_code.json` helps track the current simulation session, allowing the system to store and restore the state as needed. While it doesn’t provide specific behavior details, it ensures the continuity of the simulation by keeping track of which run is active.
+
 # Prompt Systems Section (reverie/backend_server/persona/prompt_template)
 
 ## 4. Prompt Systems

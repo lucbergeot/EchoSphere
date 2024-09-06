@@ -1,3 +1,23 @@
+# Key Libraries and Dependencies Section
+
+The Smallville simulation relies on several important Python libraries to handle its backend operations, AI interactions, and environment simulation. These libraries, listed in the `requirements.txt` file, ensure that the system can manage NPC behaviors, memory, and interactions smoothly.
+
+## Key dependencies:
+
+- **OpenAI (`openai==0.27.0`)**: Provides the interface for integrating GPT models that drive NPC conversations and dynamic decision-making.
+  
+- **Gensim (`gensim==3.8.0`)**: Used for natural language processing tasks. Likely involved in conversation memory or in summarizing past dialogue interactions.
+  
+- **Django (`Django==2.2`)**: Powers the backend server and manages the state of the simulation. Django serves as the foundation for handling NPC states, environments, and interactions between different NPCs.
+  
+- **Numpy, Scipy, Scikit-learn**: Handle numerical data and run cognitive models or statistical analyses that influence NPC decision-making and planning behaviors.
+  
+- **Nltk (`nltk==3.6.5`)**: Supports NLP tasks that may be required during NPC dialogues or for processing narrative structures.
+  
+- **Seaborn/Matplotlib**: These visualization libraries are likely used for tracking NPC behaviors, graphing events, or analyzing simulation metrics.
+
+These dependencies are crucial for replicating the autonomous social simulation logic, especially in how NPCs interact through GPT-based systems and how data is handled within the backend.
+
 # Cognitive Modules Section (reverie/backend_server/persona/cognitive_modules)
 
 ## 2. Cognitive Modules
@@ -331,3 +351,93 @@ Both the Global Methods and Compression Systems serve as essential backend utili
 
 These modules don't directly interact with NPC behavior, but they are critical for ensuring that the backend infrastructure of the simulation is smooth, scalable, and efficient.
 
+# 8. Persona Configuration and Memory
+
+## 8.1 Meta Information (`meta.json`)
+The `meta.json` file contains important metadata about the simulation, such as the simulation start date, current time, the maze name, and a list of personas involved in the current run. This file is typically created or updated as the simulation progresses, giving essential details about the environment.
+
+### Key fields:
+- **Simulation Code**: The unique identifier for the simulation session.
+- **Start Date**: The simulation's initial start time.
+- **Current Time**: Reflects the current moment in the simulation.
+- **Maze Name**: Identifies the environment in which the simulation is taking place (e.g., "the Ville").
+- **Personas**: Lists the active NPCs in the current simulation (e.g., "Isabella Rodriguez", "Maria Lopez", "Klaus Mueller").
+
+### Example from `meta.json`:
+```json
+{
+  "fork_sim_code": "July1_the_ville_isabella_maria_klaus-step-3-19",
+  "start_date": "February 13, 2023",
+  "curr_time": "February 14, 2023, 00:02:30",
+  "sec_per_step": 10,
+  "maze_name": "the_ville",
+  "persona_names": [
+    "Isabella Rodriguez",
+    "Maria Lopez",
+    "Klaus Mueller"
+  ],
+  "step": 8655
+}
+```
+This data allows the simulation to resume from any previous state, maintaining the persona relationships, environment details, and NPC positions​.
+
+## 8.2 Spatial Memory (`spatial_memory.json`)
+The spatial memory defines the environment layout and the key objects located within each room or space. This memory allows NPCs to "remember" the structure of their environment and the objects in different rooms. This is critical for pathfinding, interactions, and NPC awareness of their surroundings.
+
+### Key structures:
+- **Locations**: Breaks down different buildings (e.g., "Oak Hill College", "The Willows Market") into rooms (e.g., "library", "kitchen") and lists the objects within each room.
+- **Items**: Includes interactive objects such as "library sofa", "kitchen sink", "computer desk".
+
+### Example:
+```json
+"Oak Hill College": {
+  "hallway": [],
+  "library": ["library sofa", "library table", "bookshelf"],
+  "classroom": ["blackboard", "classroom podium", "classroom student seating"]
+}
+```
+This memory is referenced whenever an NPC navigates or interacts with objects within their environment​.
+
+## 8.3 Scratch Memory (`scratch.json`)
+The scratch memory is responsible for tracking an NPC's short-term goals and immediate plans. It includes their daily schedule, cognitive parameters, and current actions. This helps define what an NPC is currently doing and what they plan to do next.
+
+### Key components:
+- **Vision Radius**: Defines how far an NPC can see in the simulation world.
+- **Daily Plan**: Lists a persona's daily schedule, including specific times for different activities (e.g., attending a party, studying at the library).
+- **Current Task**: Tracks what the NPC is doing at the current time (e.g., "sleeping", "eating").
+
+### Example:
+```json
+{
+  "vision_r": 8,
+  "att_bandwidth": 8,
+  "curr_time": "February 14, 2023, 00:02:20",
+  "daily_plan_req": "Attend Isabella Rodriguez's Valentine's Day party from 5:00 pm to 7:00 pm",
+  "name": "Klaus Mueller",
+  "f_daily_schedule": [
+    ["sleeping", 420],
+    ["studying and researching at the library", 180]
+  ]
+}
+```
+The scratch memory allows NPCs to organize their daily life and maintain realistic behaviors in alignment with their goals​.
+
+## 9. Movement and Persona State
+
+### 9.1 Master Movement (`master_movement.json`)
+The master movement file records the position and activities of all NPCs at each step in the simulation. This data is crucial for animating NPC movement and ensuring that their physical actions correspond with their mental state and plans.
+
+### Key data:
+- **Movement**: Tracks the X-Y tile coordinates of each NPC.
+- **Activity Description**: Provides a short description of what each NPC is doing (e.g., "sleeping", "walking").
+- **Chat**: Stores dialogue history if the NPC is engaged in a conversation.
+
+### Example:
+```json
+"Klaus Mueller": {
+  "movement": [127, 46],
+  "description": "sleeping @ the Ville:Dorm for Oak Hill College:Klaus Mueller's room:bed",
+  "chat": null
+}
+```
+This file is continuously updated as the simulation progresses, ensuring that NPCs' movements are recorded and can be replayed during analysis or demos​.

@@ -132,3 +132,202 @@ The Prompt Systems interface directly with the cognitive and memory modules. For
 - **Memory Structures** feed relevant past experiences to the GPT prompts, allowing NPCs to make decisions based on their personal history.
 - **Event Systems** can trigger specific prompts (e.g., a party event might generate a conversation prompt between NPCs about the event).
 
+# Persona Class Section (reverie/backend_server/persona)
+
+## 5. Persona Class
+The Persona class, (`persona.py`) defines the core behavior of NPCs (non-player characters) in the Smallville system. Each NPC, or "persona," has its own memory, cognitive abilities, and interaction methods. The class brings together various modules (cognitive modules, memory structures) to create a dynamic, autonomous agent that can interact with the environment, other personas, and the broader simulation world.
+
+### 5.1 Persona Initialization
+Each persona is initialized with several key components:
+
+- **Name**: The persona’s unique identifier in the simulation.
+- **Memory**:
+  - **Spatial Memory**: Tracks the persona's knowledge of different locations in the world. Stored as a tree structure.
+  - **Associative Memory**: Stores events and interactions that the persona encounters, allowing them to recall past events or experiences.
+  - **Scratch Memory**: A short-term memory system that tracks immediate actions, goals, and surroundings.
+
+### 5.2 Key Functions
+The Persona class is built around a series of core functions that control how the NPC interacts with its world:
+
+- **perceive()**: The persona observes events happening around it within a set vision radius. This function limits the number of events based on two key parameters:
+  - **Attention Bandwidth**: Determines how many events the persona can focus on at once.
+  - **Retention**: Ensures the persona doesn’t repeatedly perceive the same event within a short time period, allowing it to focus on newer events.
+
+- **retrieve()**: Retrieves memories and past experiences related to the current environment and events perceived. This allows the persona to reflect on its past and use that information to inform its current behavior.
+
+- **plan()**: Using the retrieved information and current context, the persona creates both long-term and short-term plans. This function also takes into account whether it is a new day or the first day of the simulation, impacting the type of planning the persona performs.
+
+- **execute()**: Carries out the persona's actions based on its current plan. This function takes the target action (e.g., moving to a certain location or interacting with another NPC) and translates it into real-time decisions (e.g., which tile to move to, what object to interact with).
+
+- **reflect()**: Allows the persona to review its memory and form new thoughts based on recent events or interactions.
+
+- **move()**: This is the primary cognitive function that drives the persona’s overall behavior. It integrates all other functions, allowing the persona to:
+  - Perceive the environment.
+  - Retrieve past relevant memories.
+  - Plan its next actions.
+  - Execute those actions.
+  - Reflect on what has occurred.
+
+The move function is a continuous loop that updates the persona’s state and actions based on the current time, location, and surrounding environment.
+
+### 5.3 Memory Management
+The Persona class integrates several memory systems:
+
+- **Spatial Memory**: Keeps track of the physical spaces the persona has visited, aiding navigation and environmental interaction.
+- **Associative Memory**: Stores important events and conversations, allowing the persona to recall them for future reference.
+- **Scratch Memory**: Acts as a short-term memory buffer for immediate actions and tasks. This is updated continuously as the persona moves through the simulation.
+
+### 5.4 Conversation
+The persona can also open conversation sessions using the `open_convo_session()` function. This feature allows NPCs to engage in dynamic conversations, with each dialogue influenced by past interactions, the current situation, and the persona's internal state.
+
+### How the Persona Class Fits Into the Broader System
+The Persona class acts as the core driver of NPC behavior in the Smallville system. It brings together the various cognitive modules and memory structures to create a unified, autonomous agent capable of navigating the world, interacting with others, and adapting to new experiences.
+
+This file provides the framework for how an NPC "thinks" and acts. Every decision the NPC makes, from waking up in the morning to engaging in conversations, is handled through this class. It integrates with all other systems (like the memory modules and the cognitive modules) to create a fully fleshed-out agent.
+
+# Maze, Path-Finding, and Backend Simulation Systems Section (reverie/backend_server)
+
+## 6. Maze, Path-Finding, and Backend Simulation Systems
+
+### 6.1 Maze Module (`maze.py`)
+The Maze class is responsible for representing the simulated world in Smallville as a 2D grid (a matrix of tiles). Each tile contains detailed information about its sector, arena, game objects, and collision properties, allowing NPCs to navigate and interact with their environment.
+
+#### Initialization:
+- The Maze is built from data in JSON and CSV formats, where files like `collision_maze.csv` represent collision tiles, and `game_object_maze.csv` contains game object placements.
+- These files are processed to build a structured world where NPCs can interact with objects, move between spaces, and perceive the environment.
+
+#### Tile Details:
+Each tile in the maze matrix is represented as a dictionary. Key properties include:
+- **World, Sector, Arena**: Define the location of a tile within the broader map (e.g., a room in a building).
+- **Game Object**: Contains objects like furniture or other interactable elements.
+- **Collision**: Indicates whether the tile is walkable or obstructed.
+- **Events**: A set of events that are happening on the tile (e.g., "Maria is sitting on a sofa").
+
+#### Coordinate Conversion:
+Functions like `turn_coordinate_to_tile()` convert pixel coordinates into tile coordinates, allowing NPCs to know where they are on the grid. This is essential for pathfinding and movement.
+
+#### Interaction:
+Functions like `add_event_from_tile()` and `remove_event_from_tile()` allow the simulation to modify tile states as NPCs interact with objects or events. For example, if an NPC moves to a new location, their presence and actions will be added to the tile’s event log.
+
+### 6.2 Path-Finding Module (`path_finder.py`)
+The Path-Finding module allows NPCs to navigate through the maze. It uses various algorithms to find the shortest path from one point in the maze to another, avoiding obstacles and handling multiple versions of the maze.
+
+#### Version 1 & 2 Algorithms:
+- **`path_finder_v1()`**: A basic depth-first search algorithm that checks all neighboring tiles and determines a path to the destination.
+- **`path_finder_v2()`**: A more advanced algorithm that expands the search to handle more complex mazes and obstacles, finding the shortest path based on available open tiles.
+
+#### Collision Handling:
+- The algorithm uses the maze's collision data to avoid blocked areas. For example, if a tile contains an obstacle, the NPC will not attempt to move through it.
+
+#### Target Selection:
+- Functions like `closest_coordinate()` help NPCs determine which tile to move towards when navigating near other personas or objects.
+
+The Path-Finding module ensures that NPCs can move realistically through the world, finding their way to destinations while interacting with objects or other NPCs along the way.
+
+### 6.3 Reverie Server (`reverie.py`)
+The ReverieServer class handles the core simulation logic of Smallville. It is the main backend server that maintains the state of the simulation, including NPCs, time progression, and environment updates.
+
+#### Initialization:
+- The simulation can be forked from previous runs, allowing for iterative simulations. The server loads a new simulation by copying the data from a prior one and updating metadata to reflect the new session.
+- Important global variables include:
+  - **`curr_time`**: Tracks the current time in the simulation.
+  - **`sec_per_step`**: Denotes how much time passes in the simulation with each step (e.g., how much real-time a game step represents).
+
+#### Personas:
+- The server maintains a dictionary of personas and their corresponding tile locations. This allows the simulation to track where each NPC is at any given moment and to update their movements as they interact with the environment.
+
+#### Backend Logic:
+- The `start_server()` function runs the core simulation loop, which:
+  - Receives updates from the frontend (e.g., new persona movements).
+  - Executes NPCs’ cognitive functions, such as planning and perception.
+  - Records the NPCs' movements and actions back into the simulation files.
+
+#### Saving State:
+- The server regularly saves the simulation state, including the positions and actions of all NPCs, as well as the current environment. This allows for persistent simulations where changes in the world are saved and loaded in future sessions.
+
+### 6.4 Global Methods (`global_methods.py`)
+The Global Methods file contains utility functions that are used across various modules in Smallville. These functions help with file handling, data manipulation, and general backend tasks.
+
+#### File Management:
+- Functions like `create_folder_if_not_there()` and `write_list_to_csv_line()` handle saving and organizing simulation data, ensuring that data is stored correctly and in the right format (e.g., CSV files).
+
+#### Data Retrieval:
+- `read_file_to_list()` and `read_file_to_set()` allow for reading in CSV files, converting them to lists or sets, and processing the data for use in the simulation.
+
+These utility functions are essential for managing the underlying data that drives the simulation, ensuring that the system can store and retrieve information efficiently.
+
+### 6.5 Test Script (`test.py`)
+The Test Script provides a simplified environment for running tests on various parts of the system. It allows for calling specific functions or methods from the modules and checking their outputs.
+
+#### OpenAI Requests:
+- The test script includes examples of how to interact with OpenAI APIs, particularly for generating character conversations (e.g., between Maria Lopez and Klaus Mueller).
+
+#### Prompt Testing:
+- By testing conversation prompts, this script allows developers to check the integration of GPT models into the simulation and to ensure that persona interactions are behaving as expected.
+
+### How These Modules Work Together
+These backend systems form the core infrastructure for the Smallville simulation:
+
+- **Maze Navigation**: NPCs use the Maze and Path-Finding modules to navigate the physical environment.
+- **Reverie Server**: The ReverieServer manages the overall simulation state, coordinating NPCs' movements and behaviors based on their interactions with the environment and each other.
+- **Global Methods**: Utility functions are used to manage the storage, retrieval, and manipulation of simulation data.
+- **Test Environment**: The Test Script helps verify that the simulation’s integration with GPT models is functioning correctly.
+
+Together, these modules ensure that NPCs can move through the world, perceive their surroundings, interact with objects, and engage in meaningful conversations—all while being tracked and managed by the backend systems.
+
+# Global Utility and Compression Systems Section (reverie)
+
+## 7. Global Utility and Compression Systems
+
+### 7.1 Global Methods (`global_methods.py`)
+The Global Methods file is a collection of utility functions that are used throughout the Smallville project. These functions are critical for handling general tasks such as file operations, data processing, and managing simulation resources.
+
+#### Key Functions
+
+**File Operations:**
+
+- `create_folder_if_not_there()`: This function checks if a folder exists at the specified path. If the folder doesn't exist, it creates it. This function is crucial for ensuring that any time data is saved, the correct directory structure is in place.
+- `copyanything()`: A robust function for copying all files from a source directory to a destination directory. It ensures that entire simulation directories can be duplicated or backed up.
+
+**Data Management:**
+
+- `write_list_to_csv_line()` and `write_list_of_list_to_csv()`: These functions handle writing data to CSV files. They’re used to log events or NPC data incrementally during the simulation.
+- `read_file_to_list()` and `read_file_to_set()`: Functions for reading in CSV data and converting it into lists or sets. This allows the system to process data like agent movements, environment details, or past events efficiently.
+
+**Miscellaneous Functions:**
+
+- `average()` and `std()`: Basic statistical functions that calculate the average and standard deviation of values in a list. These might be used in the context of NPC decision-making or environmental analysis.
+- `find_filenames()`: A utility that scans directories for files with specific extensions (e.g., .csv). This is useful for locating data files that need to be processed during or after the simulation.
+
+These global utility functions streamline many backend operations and ensure that data can be saved, retrieved, and manipulated seamlessly within the simulation.
+
+### 7.2 Simulation Compression (`compress_sim_storage.py`)
+The Compress Simulation Storage module is a utility that compresses the data produced by a Smallville simulation for replay or storage purposes. This ensures that simulations can be stored in a more compact format, while still retaining key information about NPC movements and events.
+
+#### Compression Process
+
+**Key Paths:**
+
+- **Simulation Storage**: The simulation data is stored in a directory (e.g., `storage/sim_code`) and contains subdirectories for personas, movements, and metadata (e.g., `meta.json`).
+- **Compressed Storage**: The compressed version of the simulation is stored in a separate directory (`compressed_storage/sim_code`), and it retains only the necessary information for replays.
+
+**Data Collected:**
+
+- **Persona Movements**: The compression algorithm scans the NPC movements stored in JSON files. For each movement, it checks whether there has been any significant change (e.g., a new position, action, or conversation). If there is a change, it records that movement in the compressed file.
+- **Master Movement File**: A key output of this process is the `master_movement.json` file, which stores all significant NPC movements. This file is more compact than the raw movement data, only storing changes between steps.
+
+**Meta Data:**
+
+- The `meta.json` file is copied into the compressed storage. This file contains metadata such as the simulation’s start time, the maze configuration, and the NPCs present in the simulation.
+
+#### Usage
+This module is essential for managing the storage and replay of simulation data. By compressing the large amounts of data produced during a simulation, the system ensures that simulations can be stored efficiently while retaining all essential information for future replays or analysis.
+
+### How These Systems Work Together
+Both the Global Methods and Compression Systems serve as essential backend utilities that support the core simulation framework. Here’s how they interact with the broader Smallville system:
+
+- **Global Methods**: Provide low-level file operations and data management tools that the simulation relies on to process NPC interactions, store environment data, and track events.
+- **Compression System**: Compresses and stores simulation data, allowing for efficient data storage and replay functionality. After a simulation run, the system compresses the storage for long-term retention while maintaining all relevant metadata and movement data.
+
+These modules don't directly interact with NPC behavior, but they are critical for ensuring that the backend infrastructure of the simulation is smooth, scalable, and efficient.
+

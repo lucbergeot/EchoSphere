@@ -1,4 +1,4 @@
-# Cognitive Modules Section
+# Cognitive Modules Section (reverie/backend_server/persona/cognitive_modules)
 
 ## 2. Cognitive Modules
 The cognitive modules define how the generative agents (NPCs) perceive, plan, execute, reflect, and converse within the environment. Here's a breakdown of how each module works:
@@ -51,7 +51,7 @@ The Retrieve module helps NPCs recall relevant past events and thoughts from mem
 - `retrieve`: Retrieves thoughts and events from memory based on current circumstances, ensuring NPCs act with context and memory of their past.
 - `cos_sim`: Measures the similarity between events in memory and current events, helping the NPC decide which memories are most relevant.
 
-# Memory Structures Section
+# Memory Structures Section (reverie/backend_server/persona/memory_structures)
 
 ## 3. Memory Structures
 The memory system in Smallville is crucial for ensuring NPCs can form, recall, and act upon past experiences. Memory influences behavior, decision-making, and interactions, allowing NPCs to engage in dynamic and meaningful social interactions. Here's a breakdown of each memory module:
@@ -92,3 +92,43 @@ Together, these memory modules ensure that NPCs can:
 
 
 This module is critical for providing continuity in NPC behavior, ensuring that characters remember important past events, conversations, or relationships and act accordingly.
+
+# Prompt Systems Section (reverie/backend_server/persona/prompt_template)
+
+## 4. Prompt Systems
+The Prompt Systems section of Smallville is responsible for interacting with the OpenAI GPT models to generate conversations, actions, and decisions for the NPCs. These prompts allow NPCs to engage in dynamic, AI-driven interactions that are contextual and influenced by past events, relationships, and ongoing activities.
+
+### 4.1 GPT Structure (`gpt_structure.py`)
+The GPT structure module acts as the central interface for all GPT-related requests. It provides wrapper functions to handle requests to OpenAI’s GPT models (like GPT-3 and GPT-4) and processes the responses.
+
+- **ChatGPT_single_request**: Sends a single request to the GPT-3.5-turbo model and returns the result.
+- **GPT4_request**: Sends a single request to the GPT-4 model and handles any errors that may occur.
+- **safe_generate_response**: A utility function that ensures the GPT-generated responses are safe and meet specific criteria, repeating the request if needed. It provides fail-safe responses if GPT fails.
+
+This module ensures that NPCs receive appropriate responses to the prompts that govern their behavior, conversations, and actions. It also includes mechanisms to clean up and validate the responses, making sure that they fit the context of the ongoing simulation.
+
+### 4.2 Prompt Printing (`print_prompt.py`)
+The Print Prompt module handles the display and logging of prompts and their corresponding outputs, primarily for debugging and verbose output. When a prompt is run, it prints the NPC's persona, the GPT parameters used, the input prompt, and the GPT-generated output.
+
+- **print_run_prompts**: This function takes in details like the prompt template, NPC persona, and GPT-generated output, then logs them for debugging purposes.
+
+This module is useful for tracking the behavior of NPCs and understanding how their actions are generated based on the AI's response. It provides insights into the real-time decision-making process of NPCs within the Smallville environment.
+
+### 4.3 Run GPT Prompts (`run_gpt_prompt.py` & `defunct_run_gpt_prompt.py`)
+The Run GPT Prompts module is the core of the NPC behavior generation system. It defines various functions that generate specific behaviors for NPCs by interacting with the GPT models. Key prompt functions include:
+
+- **run_gpt_prompt_wake_up_hour**: Determines the hour at which an NPC wakes up based on their persona's lifestyle and current conditions.
+- **run_gpt_prompt_daily_plan**: Generates a broad daily plan for the NPC, including tasks like waking up, eating breakfast, and working.
+- **run_gpt_prompt_task_decomp**: Decomposes a high-level task (e.g., "eat breakfast") into smaller actions (e.g., "prepare food", "sit down", "eat").
+- **run_gpt_prompt_generate_hourly_schedule**: Breaks down the NPC's daily plan into an hourly schedule of actions.
+- **run_gpt_prompt_create_conversation**: Generates conversation topics and dialogue between two NPCs based on their past interactions, relationship, and current state.
+
+These functions work together to ensure that NPCs can follow realistic daily schedules, complete tasks, and engage in meaningful social interactions. They dynamically adjust NPC behaviors based on context, environment, and memory.
+
+### How These Systems Work Together
+The Prompt Systems interface directly with the cognitive and memory modules. For example:
+
+- **Cognitive Modules** use the GPT prompts to create high-level behaviors like planning and social interaction.
+- **Memory Structures** feed relevant past experiences to the GPT prompts, allowing NPCs to make decisions based on their personal history.
+- **Event Systems** can trigger specific prompts (e.g., a party event might generate a conversation prompt between NPCs about the event).
+

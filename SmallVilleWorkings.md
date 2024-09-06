@@ -51,4 +51,44 @@ The Retrieve module helps NPCs recall relevant past events and thoughts from mem
 - `retrieve`: Retrieves thoughts and events from memory based on current circumstances, ensuring NPCs act with context and memory of their past.
 - `cos_sim`: Measures the similarity between events in memory and current events, helping the NPC decide which memories are most relevant.
 
+# Memory Structures Section
+
+## 3. Memory Structures
+The memory system in Smallville is crucial for ensuring NPCs can form, recall, and act upon past experiences. Memory influences behavior, decision-making, and interactions, allowing NPCs to engage in dynamic and meaningful social interactions. Here's a breakdown of each memory module:
+
+### 3.1 Associative Memory (`associative_memory.py`)
+The Associative Memory module manages long-term memory for NPCs, storing events, thoughts, and conversations that NPCs encounter throughout their day. This allows NPCs to recall relevant past experiences when deciding how to act or converse with others. Key components include:
+
+- **ConceptNode**: A data structure representing an individual memory. Each memory has attributes such as its type (event, thought, or conversation), creation time, and poignancy (emotional significance).
+- **add_event, add_thought, and add_chat**: Functions that add events, thoughts, and conversations to memory. These memories are stored with associated keywords, making them retrievable later.
+- **Memory Retrieval**: Memories are retrieved using functions like `retrieve_relevant_thoughts` and `retrieve_relevant_events`, allowing NPCs to access relevant past experiences during conversations or decision-making.
+
+Associative memory is critical for creating a sense of continuity in NPC behavior. For example, if two NPCs had a conversation last week, the details of that interaction can influence their future interactions. NPCs with stronger emotional connections or significant past events will behave differently compared to those with neutral relationships.
+
+### 3.2 Spatial Memory (`spatial_memory.py`)
+The Spatial Memory module handles how NPCs remember and interact with their physical environment. NPCs can remember sectors of the world they've visited, objects within those spaces, and access permissions (e.g., certain rooms may be restricted). Important aspects include:
+
+- **MemoryTree**: This class organizes the spatial memory as a tree structure, where each node represents a world sector, and branches represent arenas or rooms within those sectors.
+- **get_str_accessible_sectors and get_str_accessible_arena_game_objects**: These functions return lists of accessible sectors and game objects in the current environment. NPCs can use this to navigate spaces and interact with objects.
+
+Spatial memory grounds NPCs in the world, ensuring they are aware of their surroundings and can access or manipulate objects and spaces accordingly. This allows for realistic navigation and interaction within the environment.
+
+### 3.3 Scratch Memory (`scratch.py`)
+The Scratch Memory module defines the NPC's short-term memory, which tracks the current state of the NPC, including immediate tasks, current location, and ongoing interactions. Key elements include:
+
+- **Persona Identity**: Stores core identity attributes (e.g., name, age, traits, lifestyle) as well as short-term information about current actions and goals.
+- **Daily Plan**: Keeps track of the NPC’s daily schedule and short-term goals, using both long-term (broad daily plan) and decomposed (hour-by-hour) versions of the schedule.
+- **Action Tracking**: Monitors the current action the NPC is performing, including its duration, description, and location (e.g., "sleeping in bedroom").
+- **Reflection and Retention**: Implements functions for daily reflection, allowing the NPC to update their short-term memory and prioritize what to remember from the day's events.
+
+Scratch memory is vital for managing immediate NPC actions and ensuring they stay on task. It also interacts with long-term associative memory to inform the NPC’s behavior based on recent experiences.
+
+### Integrated Memory System
+Together, these memory modules ensure that NPCs can:
+
+- **Store and Recall**: NPCs store detailed information about past events, conversations, and interactions with the environment. This information is retrievable when needed, ensuring continuity in NPC behavior.
+- **Plan and Navigate**: Spatial memory aids NPCs in navigating their environment, while scratch memory tracks their immediate tasks and actions. Associative memory recalls past events to inform NPCs’ decisions.
+- **Interact Meaningfully**: NPCs can recall previous conversations and experiences with other NPCs, allowing them to engage in dynamic and contextually aware conversations. NPCs can also remember locations and objects in the environment, allowing them to interact more naturally with their surroundings.
+
+
 This module is critical for providing continuity in NPC behavior, ensuring that characters remember important past events, conversations, or relationships and act accordingly.

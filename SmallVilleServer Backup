@@ -1,0 +1,213 @@
+# smallville_server.py
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import logging
+import os
+
+# Initialize Flask app
+app = Flask(__name__)
+
+proxy_prefix = os.environ.get("PROXY_PREFIX")
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+# SQLite configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///npc_memory.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize database
+db = SQLAlchemy(app)
+
+# Database Models
+
+class AssociativeMemory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    npc_id = db.Column(db.String(50), nullable=False)
+    memory = db.Column(db.Text, nullable=False)
+    related_npc_id = db.Column(db.String(50), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    importance = db.Column(db.Float, default=1.0)  # Reflects impact on relationship
+    emotional_tone = db.Column(db.String(20), default='neutral')  # e.g., 'happy', 'sad', 'angry'
+
+class Relationship(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    npc1_id = db.Column(db.String(50), nullable=False)
+    npc2_id = db.Column(db.String(50), nullable=False)
+    relationship_level = db.Column(db.Float, default=0.0)  # Scale from -10 (hostile) to +10 (friendly)
+
+    # Ensure uniqueness of NPC pairs
+    __table_args__ = (db.UniqueConstraint('npc1_id', 'npc2_id', name='_npc_relationship_uc'),)
+
+# Create all database tables
+with app.app_context():
+    db.create_all()
+
+# Helper function to get or create a relationship
+def get_or_create_relationship(npc1_id, npc2_id):
+    relationship = Relationship.query.filter(
+        ((Relationship.npc1_id == npc1_id) & (Relationship.npc2_id == npc2_id)) |
+        ((Relationship.npc1_id == npc2_id) & (Relationship.npc2_id == npc1_id))
+    ).first()
+
+    if not relationship:
+        relationship = Relationship(npc1_id=npc1_id, npc2_id=npc2_id, relationship_level=0.0)
+        db.session.add(relationship)
+        db.session.commit()
+
+    return relationship
+
+# API to add associative memory
+@app.route('/add_associative_memory', methods=['POST'])
+def add_associative_memory():
+    data = request.json
+    npc_id = data['npc_id']
+    memory_content = data['memory']
+    related_npc_id = data.get('related_npc_id')  # NPC this memory is about
+    importance = data.get('importance', 1.0)
+    emotional_tone = data.get('emotional_tone', 'neutral')
+
+    memory_entry = AssociativeMemory(
+        npc_id=npc_id,
+        memory=memory_content,
+        related_npc_id=related_npc_id,
+        importance=importance,
+        emotional_tone=emotional_tone
+    )
+    db.session.add(memory_entry)
+    db.session.commit()
+
+    print(f"Memory added for NPC {npc_id}: {memory_content}")
+    return jsonify({"status": "Associative memory added to database"})
+
+# Function to retrieve associative memories
+def get_associative_memories(npc_id, related_npc_id=None):
+    with app.app_context():
+        query = AssociativeMemory.query.filter_by(npc_id=npc_id)
+        if related_npc_id:
+            query = query.filter_by(related_npc_id=related_npc_id)
+        memories = query.order_by(AssociativeMemory.timestamp.desc()).all()
+        return memories
+
+# Endpoint to generate conversation topic
+@app.route('/generate_topic', methods=['POST'])
+def generate_topic():
+    data = request.json
+    
+    # Log request IP
+    client_ip = request.remote_addr
+    logging.info(f"Request received from IP: {client_ip}")
+    
+    # Log request headers
+    headers = request.headers
+    user_agent = headers.get('User-Agent', 'unknown')
+    logging.info(f"User-Agent: {user_agent}")
+
+    # Log request body
+    data = request.json if request.is_json else request.form
+    logging.info(f"Request data: {data}")
+
+    npc1_id = data['npc1_id']
+    npc2_id = data['npc2_id']
+
+    # Retrieve shared memories
+    shared_memories_npc1 = get_associative_memories(npc1_id, related_npc_id=npc2_id)
+    shared_memories_npc2 = get_associative_memories(npc2_id, related_npc_id=npc1_id)
+
+    # Retrieve important personal memories
+    npc1_personal = get_associative_memories(npc1_id)
+    npc2_personal = get_associative_memories(npc2_id)
+
+    topic = generate_conversation_topic(
+        npc1_id, npc2_id, shared_memories_npc1, shared_memories_npc2, npc1_personal, npc2_personal
+    )
+    return jsonify({'topic': topic})
+
+# Function to generate conversation topic
+def generate_conversation_topic(npc1_id, npc2_id, shared_memories_npc1, shared_memories_npc2, npc1_personal, npc2_personal):
+    # Get relationship status
+    relationship = get_or_create_relationship(npc1_id, npc2_id)
+    relationship_level = relationship.relationship_level
+
+    # Determine conversation tone based on relationship level
+    if relationship_level > 5:
+        tone = 'friendly'
+    elif relationship_level < -5:
+        tone = 'hostile'
+    else:
+        tone = 'neutral'
+
+    # Check for shared memories
+    if shared_memories_npc1 and shared_memories_npc2:
+        # Use the most impactful shared memory as a topic
+        combined_memories = shared_memories_npc1 + shared_memories_npc2
+        impactful_memory = max(combined_memories, key=lambda m: m.importance)
+        topic = f"Discussing past event: {impactful_memory.memory} (Tone: {tone})"
+        return topic
+    else:
+        # If no shared memories, NPC1 talks about an important personal memory
+        if npc1_personal:
+            important_memory = max(npc1_personal, key=lambda m: m.importance)
+            topic = f"{npc1_id} talks about {important_memory.memory} (Tone: {tone})"
+            return topic
+        else:
+            # Default topic
+            topic = f"Introduce yourselves and talk about your interests (Tone: {tone})"
+            return topic
+
+# Endpoint to log interaction
+@app.route('/log_interaction', methods=['POST'])
+def log_interaction():
+    data = request.json
+    npc1_id = data['npc1_id']
+    npc2_id = data['npc2_id']
+    conversation_summary = data['conversation_summary']
+    emotional_tone = data.get('emotional_tone', 'neutral')  # 'happy', 'sad', 'angry', etc.
+    impact = data.get('impact', 1.0)  # Reflects the significance of the interaction
+
+    # Store the conversation summary as a shared memory for both NPCs
+    memory_entry_npc1 = AssociativeMemory(
+        npc_id=npc1_id,
+        memory=conversation_summary,
+        related_npc_id=npc2_id,
+        importance=impact,
+        emotional_tone=emotional_tone
+    )
+    memory_entry_npc2 = AssociativeMemory(
+        npc_id=npc2_id,
+        memory=conversation_summary,
+        related_npc_id=npc1_id,
+        importance=impact,
+        emotional_tone=emotional_tone
+    )
+    db.session.add(memory_entry_npc1)
+    db.session.add(memory_entry_npc2)
+
+    # Update relationship level
+    relationship = get_or_create_relationship(npc1_id, npc2_id)
+    # Adjust the relationship level based on emotional tone and impact
+    adjustment = calculate_relationship_adjustment(emotional_tone, impact)
+    relationship.relationship_level += adjustment
+    # Clamp the relationship level between -10 and +10
+    relationship.relationship_level = max(min(relationship.relationship_level, 10), -10)
+
+    db.session.commit()
+
+    print(f"Logged interaction between {npc1_id} and {npc2_id}: {conversation_summary}")
+    print(f"Updated relationship level: {relationship.relationship_level}")
+    return jsonify({'status': 'Interaction logged'})
+
+# Helper function to calculate relationship adjustment
+def calculate_relationship_adjustment(emotional_tone, impact):
+    tone_adjustments = {
+        'happy': 1.0,
+        'sad': -0.5,
+        'angry': -1.0,
+        'neutral': 0.0
+    }
+    adjustment = tone_adjustments.get(emotional_tone.lower(), 0.0) * impact
+    return adjustment
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
